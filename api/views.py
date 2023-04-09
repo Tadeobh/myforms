@@ -154,6 +154,13 @@ class QuestionDetail(generics.RetrieveUpdateDestroyAPIView):
 
         # Return the queryset with the Question found.
         return question_queryset
+    
+    # Override perform_destroy to update the 'date_updated' field from
+    # the Question's Form before deleting the Question.
+    def perform_destroy(self, instance):
+        form = instance.form
+        form.update_date_updated()
+        return super().perform_destroy(instance)
 
 
 class OptionList(generics.ListCreateAPIView):
@@ -256,3 +263,10 @@ class OptionDetail(generics.RetrieveUpdateDestroyAPIView):
 
         # Return the queryset with the Option found.
         return option_queryset
+    
+    # Override perform_destroy to update the 'date_updated' field from
+    # the Question's Form before deleting the Option.
+    def perform_destroy(self, instance):
+        form = instance.question.form
+        form.update_date_updated()
+        return super().perform_destroy(instance)

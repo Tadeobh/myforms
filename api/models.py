@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import User
 
 # Form model
@@ -8,6 +9,10 @@ class Form(models.Model):
     date_updated = models.DateTimeField(auto_now=True)
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=511)
+
+    def update_date_updated(self):
+        self.date_updated = timezone.now()
+        self.save(update_fields=['date_updated'])
 
     def __str__(self) -> str:
         return f"<Form {self.created_by} {self.pk}>"

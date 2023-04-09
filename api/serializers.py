@@ -27,15 +27,6 @@ class UserSerializer(serializers.ModelSerializer):
 # Serializer to retrieve only the Access Token
 # from the simple-jwt token generation system.
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    
-    # @classmethod
-    # def get_token(cls, user):
-    #     token = super().get_token(user)
-
-    #     # Set the life time of the token to 12 hours.
-    #     token['exp'] = datetime.utcnow() + timedelta(hours=os.environ('TOKEN_EXP_TIME'))
-
-    #     return token
 
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -74,11 +65,25 @@ class OptionSerializer(serializers.ModelSerializer):
     # if the user is trying to link the Option to a Question of type 'text'.
     def create(self, validated_data):
         question = validated_data.get('question')
-        if question:
-            if question.type == 'text':
-                raise serializers.ValidationError({'question': "Question object must NOT be of type 'text'."})
-            return super().create(validated_data)
-        raise exceptions.NotFound(detail='A Question with the given ID could not be found.')
+        if question.type == 'text':
+            raise serializers.ValidationError({'question': "Question object must NOT be of type 'text'."})
+        
+        # Update the 'date_updated' field from the Form.
+        form = question.form
+        form.update_date_updated()
+
+        # Create the new Option.
+        return super().create(validated_data)
+    
+    # Override the default update() method to raise a ValidationError exception
+    # if the user is trying to link the Option to a Question of type 'text'.
+    def update(self, instance, validated_data):
+        # Update the 'date_updated' field from the Form.
+        form = instance.question.form
+        form.update_date_updated()
+
+        # Update the Option.
+        return super().update(instance, validated_data)
 
 
 # Question serializer
@@ -90,12 +95,24 @@ class QuestionSerializer(serializers.ModelSerializer):
         exclude = ['form']
 
     def update(self, instance, validated_data):
-        # Check if type is text and delete all options
+        # Check if type is text and delete all options.
         if validated_data.get('type') == 'text':
             instance.options.all().delete()
-        # Call the superclass update method to update the Question object
+
+        # Call the superclass update method to update the Question object.
         question = super().update(instance, validated_data)
+
+        # Update the Form's date_updated field.
+        form = Form.objects.get(pk=instance.form.pk)
+        form.update_date_updated()
+        
         return question
+
+    def create(self, validated_data):
+        form = Form.objects.get(pk=validated_data.get('form').pk)
+        form.update_date_updated()
+        return super().create(validated_data)
+
 
 # Response serializer
 class ResponseSerializer(serializers.ModelSerializer):
