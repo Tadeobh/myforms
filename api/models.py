@@ -69,5 +69,8 @@ class AnswerOption(models.Model):
     value = models.CharField(max_length=255)
     answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = (("value", "answer"),)
+
     def __str__(self) -> str:
         return f"<AnswerOption {self.pk} from Answer {self.answer.pk}>"

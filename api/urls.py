@@ -23,4 +23,8 @@ urlpatterns = [
     path('forms/<int:form_id>/questions/<int:question_id>/options/', views.OptionList.as_view(), name='options_list'),
     path('forms/<int:form_id>/questions/<int:question_id>/options/<int:option_id>/', views.OptionDetail.as_view(), 
          name='option_detail'),
+
+    # Response
+    path('forms/<int:form_id>/responses/', views.ResponseList.as_view(), name='responses_list'),
+    path('forms/<int:form_id>/responses/<int:response_id>/', views.ResponseDetail.as_view(), name='response_detail'),
 ]

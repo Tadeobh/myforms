@@ -1,12 +1,13 @@
 from django.db.utils import IntegrityError
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework import viewsets, status, generics
-from rest_framework.response import Response
+from rest_framework import viewsets, status, generics, response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import Form, Question, Option
-from .serializers import UserSerializer, MyTokenObtainPairSerializer, FormSerializer, QuestionSerializer, OptionSerializer
+from .models import Form, Question, Option, Response
+from .serializers import (UserSerializer, MyTokenObtainPairSerializer,
+FormSerializer, QuestionSerializer, OptionSerializer,
+ResponseSerializer)
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -22,8 +23,8 @@ class UserViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -270,3 +271,60 @@ class OptionDetail(generics.RetrieveUpdateDestroyAPIView):
         form = instance.question.form
         form.update_date_updated()
         return super().perform_destroy(instance)
+    
+
+class ResponseList(generics.ListCreateAPIView):
+    """
+    View to create a new Response and their corresponding
+    Answers and AnswerOptions, or get a list of Responses 
+    for a given Form.
+    """
+
+    serializer_class = ResponseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.method == 'GET':
+            user = self.request.user
+            form_id = self.kwargs.get('form_id')
+
+            # If the Form with the given id exists, get it from the database.
+            # If not, return a 400 error.
+            try:
+                form = Form.objects.get(pk=form_id, created_by=user)
+            except Form.DoesNotExist:
+                return NotFound(detail="A Form with the given form_id could not be found.")
+            
+            # Get the queryset with the list of Responses from the Form.
+            queryset = Response.objects.filter(form=form)
+        else:
+            return Response.objects.all()
+        
+
+class ResponseDetail(generics.RetrieveUpdateDestroyAPIView):
+    """
+    View to get, update, or destroy an existing Response.
+    """
+
+    serializer_class = ResponseSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'response_id'
+
+    def get_queryset(self):
+        user = self.request.user
+        form_id = self.kwargs.get('form_id')
+
+        # Get the Form the user is referencing in the query parameters
+        # and check if it belongs to the user.
+        try:
+            form = Form.objects.get(pk=form_id, created_by=user)
+        except Form.DoesNotExist:
+            return NotFound(detail="A Form with the given form_id could not be found.")
+        
+        # Get the QuerySet with the Responses from the referenced Form.
+        response_queryset = Response.objects.filter(form=form)
+        if not response_queryset:
+            return NotFound(detail="A Response with the given response_id could not be found.")
+
+        # Return the QuerySet.
+        return response_queryset
