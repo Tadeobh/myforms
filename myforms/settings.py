@@ -27,8 +27,19 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANDO_DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+]
 
+# CORS allowed origins
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://localhost:5173",
+]
+
+# CORS allow credentials
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -43,6 +54,7 @@ INSTALLED_APPS = [
     # Imported apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'corsheaders',
 
     # Custom apps
     "api",
@@ -61,6 +73,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
