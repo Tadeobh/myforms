@@ -22,7 +22,4 @@ urlpatterns = [
 
     # API Endpoints
     path("api/", include('api.urls')),
-
-    # Front-End Endpoints
-    path("", include('web_app.urls')),
 ]
