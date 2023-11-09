@@ -30,7 +30,7 @@ class Response(models.Model):
 
 # Question model
 class Question(models.Model):
-    text = models.CharField(max_length=255)
+    text = models.CharField(max_length=255, default="New Question")
     type = models.CharField(max_length=10, choices=[
         ('text', 'Text'),
         ('select', 'Select one'),
@@ -47,9 +47,9 @@ class Option(models.Model):
     value = models.CharField(max_length=255)
     position = models.SmallIntegerField()
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    
+
     class Meta:
-        unique_together = (("position", "question"),)
+        ordering = ["position"]
 
     def __str__(self) -> str:
         return f"<Option {self.pk} from Question {self.question.pk}>"

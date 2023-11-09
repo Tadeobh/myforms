@@ -67,7 +67,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=int(os.environ.get('TOKEN_EXP_TIME',12))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('TOKEN_EXP_TIM',15))),
 }
 
 MIDDLEWARE = [
@@ -100,7 +100,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "myforms.wsgi.application"
-
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases

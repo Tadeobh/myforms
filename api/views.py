@@ -184,18 +184,18 @@ class OptionList(generics.ListCreateAPIView):
             if not question_id:
                 raise ValidationError({'question_id': 'Missing URL parameter.'})
             
-            # Check if the Form with the given form_id exists.
+            # First check if the Form and Question with the given ids exist, 
+            # and if the user owns the Form before adding the new Option.
             try:
                 form = Form.objects.get(pk=form_id, created_by=self.request.user)
+                question = Question.objects.get(form=form, pk=question_id)
             except Form.DoesNotExist:
                 raise NotFound(detail="A Form with the given form_id could not be found.")
-            
-            # Check if the Question with the given Form and question_id exists.
-            question = Question.objects.get(form=form, pk=question_id)
-            if not question:
+            except Question.DoesNotExist:
                 raise NotFound(detail="A Question with the given question_id could not be found.")
             
-            return Option.objects.all().filter(question=question)
+            # Return the list of Options ordered by "position".
+            return Option.objects.filter(question=question)
         
         return Option.objects.all() 
     
@@ -218,7 +218,7 @@ class OptionList(generics.ListCreateAPIView):
 
 class OptionDetail(generics.RetrieveUpdateDestroyAPIView):
     """
-    View to get, modify or delete an existing Option
+    View to get, update or delete an existing Option
     from a given Question and Form.
     """
 
@@ -238,8 +238,6 @@ class OptionDetail(generics.RetrieveUpdateDestroyAPIView):
             raise ValidationError({'form_id': 'Missing URL parameter.'})
         if not question_id:
             raise ValidationError({'question_id': 'Missing URL parameter.'})
-        
-        print("[Successfully retrieved id's]")
         
         # Check if the Form with the given form_id exists.
         try:

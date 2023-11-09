@@ -1,9 +1,8 @@
-# from datetime import datetime, timedelta
+from django.db import transaction
 from rest_framework import serializers, exceptions
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-# import os
 
 from .models import Form, Question, Option, Response, Answer, AnswerOption
 
@@ -68,6 +67,17 @@ class OptionSerializer(serializers.ModelSerializer):
         if question.type == 'text':
             raise serializers.ValidationError({'question': "Question object must NOT be of type 'text'."})
         
+        # Get the list of Options that will need to be shifted one position forward
+        # to allow room for the new Option.
+        opts_to_update = Option.objects.filter(position__gte=validated_data.get('position'))
+
+        # Shift the Options' positions if there are any.
+        if len(opts_to_update) > 0:
+            with transaction.atomic():
+                for opt in opts_to_update:
+                    opt.position += 1
+                    opt.save()
+
         # Update the 'date_updated' field from the Form.
         form = question.form
         form.update_date_updated()
@@ -85,17 +95,16 @@ class OptionSerializer(serializers.ModelSerializer):
         # Update the Option.
         return super().update(instance, validated_data)
 
-
 # Question serializer
 class QuestionSerializer(serializers.ModelSerializer):
-    options = OptionSerializer(source='option_set', many=True, read_only=True)
+    options = OptionSerializer(source='option_set',many=True)
 
     class Meta:
         model = Question
         exclude = ['form']
 
     def update(self, instance, validated_data):
-        # TODO: Check if type is text and delete all options.
+        # Check if type is text and delete all options.
         if validated_data.get('type') == 'text':
             Option.objects.filter(question=instance).delete()
 
@@ -115,8 +124,17 @@ class QuestionSerializer(serializers.ModelSerializer):
         # Update the From's date_updated field.
         form.update_date_updated()
 
-        # Create the new Question object.
-        return super().create(validated_data)
+        # Get the list of Options from the validated data.
+        print(validated_data)
+        options = validated_data.pop("option_set")
+
+        # Create the new Question and its Options.
+        question = super().create(validated_data)
+        for option in options:
+            Option.objects.create(question=question, **option)
+        
+        # Return the Question that has just been created.
+        return question
 
 
 # Response serializer
@@ -149,9 +167,6 @@ class ResponseSerializer(serializers.ModelSerializer):
     # Override the create() method to create the Answers and AnswerOptions
     # needed and link them to the new Response element.
     def create(self, validated_data):
-
-        print("[validated_data]:")
-        print(validated_data)
 
         # Get the user who made the request.
         user = self.context.get('request').user
@@ -241,6 +256,7 @@ class ResponseSerializer(serializers.ModelSerializer):
             for answer_option_data in answer_options_data:
                 AnswerOption.objects.create(answer=new_answer, **answer_option_data)
 
+        # Return the Response that was just created.
         return response
 
 
