@@ -88,6 +88,21 @@ class OptionSerializer(serializers.ModelSerializer):
     # Override the default update() method to raise a ValidationError exception
     # if the user is trying to link the Option to a Question of type 'text'.
     def update(self, instance, validated_data):
+        # Check if the Option's position is being updated.
+        updated_pos = validated_data.get('position')
+
+        if updated_pos is not None:
+            # Get the list of Options that will need to be shifted one position forward
+            # to allow room for the Option.
+            opts_to_update = Option.objects.filter(position__gte=updated_pos)
+
+            # Shift the Options' positions if there are any.
+            if len(opts_to_update) > 0:
+                with transaction.atomic():
+                    for opt in opts_to_update:
+                        opt.position += 1
+                        opt.save()
+
         # Update the 'date_updated' field from the Form.
         form = instance.question.form
         form.update_date_updated()
